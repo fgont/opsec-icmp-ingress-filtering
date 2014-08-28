@@ -81,6 +81,20 @@
 </address>
 </author> 
 
+<author initials="J." surname="Massar" fullname="Jeroen Massar">
+<organization>Massar Networking</organization>
+<address>
+<postal>
+<street>Swiss Post Box 101811</street>
+<street>Zuercherstrasse 161</street>
+<code>CH-8010</code> <city>Zuerich</city>
+<country>CH</country>
+</postal>
+<email>jeroen@massar.ch</email>
+<uri>http://jeroen.massar.ch</uri>
+</address>
+</author>
+
 <author fullname="Will(Shucheng) Liu" initials="W." surname="Liu">
       <organization>Huawei Technologies</organization>
       <address>
@@ -158,6 +172,9 @@ Over the years, a number of attack vectors that employ forged ICMP/ICMPv6 error 
 
 <figure title="Sample Scenario for ICMP/ICMPv6 Error Generation" anchor="figure-legitimate-scenario" align="center">
 <artwork align="center"><![CDATA[
+      192.0.2.0/24                    198.51.100.0/24
+        network                           network
+
                 192.0.2.1      198.51.100.1
 +----+                   +----+                   +----+
 | H1 |-------------------| R1 |-------------------| H2 |
@@ -196,16 +213,16 @@ where the ICMP error message embeds the whole (or part of) the original packet t
 <t>In our scenario, the relevant header fields would have the following values:
 
 <list style="symbols">
-<t>Source Address (outer packet): 192.0.2.1</t>
-<t>Destination Address (outer packet): 192.0.2.100</t>
-<t>Source Address (inner packet): 192.0.2.100</t>
-<t>Destination Address (inner packet): 198.51.100.100</t>
+<t>Source Address: 192.0.2.1</t>
+<t>Destination Address: 192.0.2.100</t>
+<t>Source Address (embedded packet): 192.0.2.100</t>
+<t>Destination Address (embedded packet): 198.51.100.100</t>
 </list>
 </t>
 
-<t>It should be clear that the Source Address of the (outer) packet could be virtually any address (since it corresponds to the IP address of a router reporting the error), while the Destination Address of the packet will be that of the target/destination of the ICMP error message. On the other hand, the IP addresses of the inner (embedded) packet will be those of the packet that elicited the ICMP error message.</t>
+<t>It should be clear that the Source Address of the packet could be virtually any address (since it corresponds to the IP address of a router reporting the error), while the Destination Address of the packet will be that of the target/destination of the ICMP error message. On the other hand, the IP addresses of the embedded packet will be those of the packet that elicited the ICMP error message.</t>
 
-<t>The inner (embedded) IP packet is typically employed by the receiving system to demultiplex the ICMP error message.</t>
+<t>The embedded IP packet is typically employed by the receiving system to demultiplex the ICMP error message.</t>
 </section>
 
 
@@ -215,6 +232,8 @@ where the ICMP error message embeds the whole (or part of) the original packet t
 
 <figure title="Hypothetical Attack Scenario" anchor="figure-attack-scenario" align="center">
 <artwork align="center"><![CDATA[
+      192.0.2.0/24                    198.51.100.0/24
+        network                           network
 
                 192.0.2.1      198.51.100.1
 +----+                   +----+                   +----+
@@ -248,21 +267,21 @@ where the ICMP error message embeds the whole (or part of) the original packet t
 In our scenario, the attack packet sent by the attacker would have the same structure as that of <xref target="figure-icmp-structure"/>, with the following values:
 
 <list style="symbols">
-<t>Source Address (outer packet): 203.0.113.100 (or forged address)</t>
-<t>Destination Address (outer packet): 192.0.2.100</t>
-<t>Source Address (inner packet): 192.0.2.100</t>
-<t>Destination Address (inner packet): 198.51.100.100</t>
+<t>Source Address: 203.0.113.100 (or forged address)</t>
+<t>Destination Address: 192.0.2.100</t>
+<t>Source Address (embedded packet): 192.0.2.100</t>
+<t>Destination Address (embedded packet): 198.51.100.100</t>
 </list>
 </t>
 
-<t>The Source Address of the outer packet is rather irrelevant and need not be forged. The Destination Address of the outer packet will be that of the attack target (H1 in our case). The Source Address of the inner packet will be that of the attack target (H1 in our case). Finally, the Destination Address of the inner packet will be that of the peer with which the attack target is communicating (H2 in our case).</t>
+<t>The Source Address of the packet is rather irrelevant and need not be forged. The Destination Address of the packet will be that of the attack target (H1 in our case). The Source Address of the embedded packet will be that of the attack target (H1 in our case). Finally, the Destination Address of the embedded packet will be that of the peer with which the attack target is communicating (H2 in our case).</t>
 
 <t>If router R2 were to inspect the payload of the ICMP attack packet, it would conclude that the attack packet cannot be possibly valid, since packets destined to 198.51.100.100 would never be forwarded to the network from which the error message is originating. In a similar vein, if R1 were to examine the payload of the aforementioned ICMP error message, it would also conclude that the ICMP error message cannot be possibly valid, for the same reason stated before. Thus, filtering ICMP messages based on the ICMP payload could be employed as a countermeasure for attacks based on ICMP error messages.</t>
 </section>
 </section>
 
 <section title="ICMP/ICMPv6 Network Ingress Filtering" anchor="icmp-filtering">
-<t>IP and IPv6 nodes SHOULD perform ingress filtering on the Destination Address of the IP/IPv6 packet embedded in the ICMP/ICMPv6 payload.</t>
+<t>IP nodes SHOULD perform ingress filtering on the Destination Address of the IP packet embedded in the ICMP payload.</t>
 
 <t>In the most simple case, where network ingress filtering is implemented at an edge network with ingress access lists (as suggested in <xref target="RFC2827"/>), a router should check:
 
