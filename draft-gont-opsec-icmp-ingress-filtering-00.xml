@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+    <!-- try to enforce the ID-nits conventions and DTD validity -->
+<?rfc strict="no" ?>    <!-- items used when reviewing the document -->
+<?rfc comments="no" ?>  <!-- controls display of <cref> elements -->
+<?rfc inline="no" ?>    <!-- when no, put comments at end in comments section,
+                                otherwise, put inline -->
+<?rfc editing="no" ?>   <!-- when yes, insert editing marks -->
+
+    <!-- create table of contents (set it options).
+           Note the table of contents may be omitted
+         for very short documents -->
+
+<?rfc toc="yes"?><?rfc tocompact="yes"?>
+<?rfc tocdepth="2"?>
+
+    <!-- choose the options for the references. Some like
+         symbolic tags in the references (and citations)
+         and others prefer numbers. --> 
+<?rfc symrefs="yes"?><?rfc sortrefs="yes" ?>
+    <!-- these two save paper: start new paragraphs from the same page etc. -->
+<?rfc compact="yes" ?><?rfc subcompact="no" ?>
+<!-- end of list of processing instructions -->
+    <!-- Information about the document.
+         categories values: std, bcp, info, exp, and historic
+         For Internet-Drafts, specify attribute "ipr".
+         (ipr values are: full3667, noModification3667, noDerivatives3667),
+         Also for Internet-Drafts, can specify values for
+         attributes "iprExtract", and "docName".  Note
+         that the value for iprExtract is the anchor attribute
+         value of a section that can be extracted, and is only
+         useful when the value of "ipr" is not "full3667". -->
+    <!-- TODO: verify which attributes are specified only
+            by the RFC editor.  It appears that attributes
+            "number", "obsoletes", "updates", and "seriesNo"
+            are specified by the RFC editor (and not by
+            the document author). -->
+
+<rfc    
+    category="bcp"
+    ipr="trust200902"
+    updates="2827, 3704"
+    docName="draft-gont-opsec-icmp-ingress-filtering-00.txt" >
+
+<front>
+    <title abbrev="ICMP Ingress Filtering">Network Ingress Filtering: Defeating Attacks which employ Forged ICMP/ICMPv6 Error Messages</title>
+
+    <!-- add 'role="editor"' below for the editors if appropriate -->    
+
+<author
+        fullname="Fernando Gont"
+        initials="F."
+        surname="Gont">
+    <!-- abbrev not needed but can be used for the header
+         if the full organization name is too long -->
+        <organization abbrev="UTN-FRH / SI6 Networks">UTN-FRH / SI6 Networks</organization>
+        <address>
+            <postal>                <!-- I've omitted my street address here -->
+             <street>Evaristo Carriego 2644</street>
+        <code>1706</code><city>Haedo</city>
+         <region>Provincia de Buenos Aires</region>
+        <country>Argentina</country>
+            </postal>
+            <phone>+54 11 4650 8472</phone>
+            <email>fgont@si6networks.com</email>
+        <uri>http://www.si6networks.com</uri>
+
+        </address>
+    </author>    
+
+<author fullname="Ray Hunter" initials="R.A." surname="Hunter">
+<organization> Globis Consulting BV</organization>
+<address>
+<postal>
+<street>Weegschaalstraat 3</street>
+<code>5632CW</code> <city>Eindhoven</city>
+<country>NL</country>
+</postal>
+<email>v6ops@globis.net</email>
+</address>
+</author> 
+
+<author fullname="Will(Shucheng) Liu" initials="W." surname="Liu">
+      <organization>Huawei Technologies</organization>
+      <address>
+        <postal>
+          <street>Bantian, Longgang District</street>
+          <city>Shenzhen</city>
+          <code>518129</code>
+          <country>P.R. China</country>
+        </postal>
+        <email>liushucheng@huawei.com</email>
+      </address>
+</author>
+
+
+<date /> 
+<!-- month="May" is no longer necessary note also, day="30" is optional -->
+    <area>Operations and Management (ops)</area>    <!-- WG name at the upperleft corner of the doc,
+         IETF fine for individual submissions -->
+    <workgroup>opsec</workgroup>
+
+<abstract>
+<t>
+Over the years, a number of attack vectors that employ forged ICMP/ICMPv6 error messages have been disclosed and exploited in the wild. The aforementioned attack vectors do not require that the source address of the packets be forged, but do require that the addresses of the IP/IPv6 packet embedded in the ICMP/ICMPv6 payload be forged. This document discusses a simple, effective, and straightforward method for using ingress traffic filtering to mitigate attacks that use forged addresses in the IP/IPv6 packet embedded in an ICMP/ICMPv6 payload. This advice is in line with the recommendations in BCP38.
+</t>
+</abstract>
+
+</front>
+
+<middle>
+
+<section title="Introduction" anchor="intro">
+<t>
+Over the years, a number of attack vectors that employ forged ICMP/ICMPv6 error messages have been disclosed and exploited in the wild. The effects of these attack vectors have ranged from Denial of Service (DoS) to performance degradation <xref target="US-CERT"/> <xref target="RFC5927"/> <xref target="I-D.gont-v6ops-ipv6-ehs-in-real-world"/>.</t>
+
+<t>The aforementioned attack vectors do not require that the Source Address of the ICMP <xref target="RFC0792"/> or ICMPv6 <xref target="RFC4443"/> attack packets to be forged, but do require that the Destination Address of the IP <xref target="RFC0791"/> (in the case of ICMP) or IPv6 (in the case of ICMPv6) packet embedded in the ICMP/ICMPv6 payload be forged. Thus, performing ingress filter (ala BCP38 <xref target="RFC2827"/>) on the Destination Address of the embedded IP/IPv6 packet results in a simple, effective, and straightforward mitigation for any attack vectors based on ICMP/ICMPv6 error messages.</t>
+
+<t>This document describes the network ingress filtering on ICMP/ICMPv6 payloads, and formally updates BCP38 (<xref target="RFC2827"/>) such that the aforementioned filtering method is enforced as part of a general network ingress filtering strategy.</t>
+
+<t><xref target="overview"/> provides an overview of how ICMP/ICMPv6 error messages are generated, and how packets are crafted to perform attacks based on ICMP/ICMPv6 error messages. <xref target="icmp-filtering"/> specifies network ingress filtering based on the ICMP/ICMPv6 payload.
+</t>
+</section>
+
+
+<section title="Terminology" anchor="terminology">
+<t>Throughout this document the term "IP" is employed to refer to both the IPv4 <xref target="RFC0791"/> and IPv6 <xref target="RFC2460"/> protocols. That is, the term "IP" is employed when we do not mean to make a distinction between both versions of the protocol. In a similar vein, the term "ICMP" is employed to refer to both the ICMPv4 <xref target="RFC0792"/> and ICMPv6 <xref target="RFC4443"/> protocols. That is, the term "ICMP" is employed when we do not mean to make a distinction between both versions of the protocol.</t>
+
+<t>For obvious reasons, ICMPv4 will only be employed in conjunction with IPv4, and ICMPv6 will always be employed in conjunction with IPv6. That is, the phrase "the IP packet embedded in the ICMP payload" means "the IPv4 packet embedded in the ICMPv4 payload" payload or "the IPv6 packet embedded in the ICMPv6 payload" (but NOT e.g. "the IPv4 packet embedded in the ICMPv6 payload").</t>
+
+<!--
+    <t>
+        The terms "fast path", "slow path", and associated relative 
+        terms ("faster path" and "slower path") are loosely defined as 
+        in Section 2 of <xref target="RFC6398"/>.
+    </t>
+
+<t>The terms "permit" (allow the traffic), "drop" (drop with no notification to sender), and "reject" (drop with appropriate notification to sender) are employed as defined in <xref target="RFC3871"/>. Throughout this document we also employ the term "discard" as a generic term to indicate the act of discarding a packet, irrespective of whether the sender is notified of such drops.
+</t>
+-->
+
+            <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL",
+            "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY",
+            and "OPTIONAL" in this document are to be interpreted as
+            described in <xref target="RFC2119"/>.</t>
+
+</section>
+
+
+<section title="Overview" anchor="overview">
+
+<t>Attack vectors based on ICMP error messages have been known for a long time, and have been described in detail in <xref target="RFC5927"/>. The following subsections provide an overview of how ICMP error messages are generated in legitimate scenarios, and how an attacker would forge an ICMP error message in order to perform an attack based n ICMP error messages.
+</t>
+
+<section title="Generation of ICMP Error Messages in Legitimate Scenarios" anchor="legitimate-icmp">
+<t>The following figure illustrates a very simple network scenario in which two hosts (H1 and H2) are connected to each other by means of the router R1:
+
+<figure title="Sample Scenario for ICMP/ICMPv6 Error Generation" anchor="figure-legitimate-scenario" align="center">
+<artwork align="center"><![CDATA[
+                192.0.2.1      198.51.100.1
++----+                   +----+                   +----+
+| H1 |-------------------| R1 |-------------------| H2 |
++----+                   +----+                   +----+
+      192.0.2.100                   198.51.100.100
+]]></artwork>
+<postamble></postamble>
+</figure>
+</t>
+
+<t>
+The aforementioned figure illustrates the IP addresses assigned to each of the involved network interfaces. For simplicity sake, this figure employs only IPv4 addresses, but the same logic applies to the IPv6 case.</t>
+
+<t>Let us assume that H1 sends a packet towards H2, and that R1 encounters an error condition while processing such a packet. Typically, the error condition will be reported to H1 by means of an ICMP error message. The error message will have the following structure:
+
+<figure title="Structure of ICMP/ICMPv6 Error Messages" anchor="figure-icmp-structure" align="center">
+<artwork align="center"><![CDATA[
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|           |                                  ICMP Payload
++           +  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+      +
+|     IP    |  |   IP    |       IP       Original  |
++           +  +         +                 packet   +
+|   Header  |  | Header  |     Payload       |      |
++           +  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+      +
+|           |                                       |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+]]></artwork>
+<postamble></postamble>
+</figure>
+</t>
+
+<t>
+where the ICMP error message embeds the whole (or part of) the original packet that elicited the error message.
+</t>
+
+<t>In our scenario, the relevant header fields would have the following values:
+
+<list style="symbols">
+<t>Source Address (outer packet): 192.0.2.1</t>
+<t>Destination Address (outer packet): 192.0.2.100</t>
+<t>Source Address (inner packet): 192.0.2.100</t>
+<t>Destination Address (inner packet): 198.51.100.100</t>
+</list>
+</t>
+
+<t>It should be clear that the Source Address of the (outer) packet could be virtually any address (since it corresponds to the IP address of a router reporting the error), while the Destination Address of the packet will be that of the target/destination of the ICMP error message. On the other hand, the IP addresses of the inner (embedded) packet will be those of the packet that elicited the ICMP error message.</t>
+
+<t>The inner (embedded) IP packet is typically employed by the receiving system to demultiplex the ICMP error message.</t>
+</section>
+
+
+
+<section title="Attack Scenario" anchor="attack-scenario">
+<t>The following figure illustrates a very simple attack scenario in which an attacker (H3) tries to perform an attack against H1, while H1 is communicating with H2:
+
+<figure title="Hypothetical Attack Scenario" anchor="figure-attack-scenario" align="center">
+<artwork align="center"><![CDATA[
+
+                192.0.2.1      198.51.100.1
++----+                   +----+                   +----+
+| H1 |-------------------| R1 |-------------------| H2 |
++----+                   +----+                   +----+
+      192.0.2.100           |       198.51.100.100
+                            |
+                     ___--^--/--__
+                    /             \
+                   <    Internet   >
+                    \_           _|
+                      \_________/
+                            |
+                            |
+                         +----+
+                         | R2 |
+                         +----+
+               203.0.113.1  |
+                            |      203.0.113.0/24 network
+                            |
+                            |  203.0.113.100
+                         +----+
+                         | H3 |
+                         +----+
+]]></artwork>
+<postamble></postamble>
+</figure>
+</t>
+
+<t>
+In our scenario, the attack packet sent by the attacker would have the same structure as that of <xref target="figure-icmp-structure"/>, with the following values:
+
+<list style="symbols">
+<t>Source Address (outer packet): 203.0.113.100 (or forged address)</t>
+<t>Destination Address (outer packet): 192.0.2.100</t>
+<t>Source Address (inner packet): 192.0.2.100</t>
+<t>Destination Address (inner packet): 198.51.100.100</t>
+</list>
+</t>
+
+<t>The Source Address of the outer packet is rather irrelevant and need not be forged. The Destination Address of the outer packet will be that of the attack target (H1 in our case). The Source Address of the inner packet will be that of the attack target (H1 in our case). Finally, the Destination Address of the inner packet will be that of the peer with which the attack target is communicating (H2 in our case).</t>
+
+<t>If router R2 were to inspect the payload of the ICMP attack packet, it would conclude that the attack packet cannot be possibly valid, since packets destined to 198.51.100.100 would never be forwarded to the network from which the error message is originating. In a similar vein, if R1 were to examine the payload of the aforementioned ICMP error message, it would also conclude that the ICMP error message cannot be possibly valid, for the same reason stated before. Thus, filtering ICMP messages based on the ICMP payload could be employed as a countermeasure for attacks based on ICMP error messages.</t>
+</section>
+</section>
+
+<section title="ICMP/ICMPv6 Network Ingress Filtering" anchor="icmp-filtering">
+<t>IP and IPv6 nodes SHOULD perform ingress filtering on the Destination Address of the IP/IPv6 packet embedded in the ICMP/ICMPv6 payload.</t>
+
+<t>In the most simple case, where network ingress filtering is implemented at an edge network with ingress access lists (as suggested in <xref target="RFC2827"/>), a router should check:
+
+<figure align="center">
+<artwork><![CDATA[
+IF    embedded packet's Destination Address is from within my network
+THEN  forward as appropriate
+
+IF    embedded packet's Destination Address is anything else
+THEN  deny packet
+]]></artwork>
+<postamble></postamble>
+</figure>
+</t>
+
+<t>Alternatively, in the same "edge network" scenario, the aforementioned network ingress filtering could possibly be implemented by performing unicast Reverse Path Forwarding (uRPF) on the Destination Address of the embedded IP packet.</t>
+<t>We note, however, that the techniques described in <xref target="RFC3704"/> should be evaluated when the aforementioned network ingress filtering is to be implemented in more complex network scenarios, such as that of a multihomed networks.</t>
+
+<t>Finally, we note that packet drops SHOULD be logged, since this then provides a basis for monitoring any suspicious activity.
+</t>
+
+</section>
+
+
+<section anchor="IANA" title="IANA Considerations">
+    <t>This document has no actions for IANA.</t>
+</section>
+
+
+<section title="Security Considerations" anchor="Security" >
+<t>
+This document provides advice on performing network ingress filtering on ICMPv4 and ICMPv6 error messages, such that attacks based on such messages are mitigated.
+</t>
+
+<t>We note that a given platform may or may not be able to filter ICMP error messages base on the ICMP payload. Thus, the aforementioned filter SHOULD only be performed where applicable. Additionally, enforcing the aforementioned filtering method might impact the performance of the filtering device (see e.g., <xref target="Cisco-EH-Cons"/> and <xref target="Zack-FW-Benchmark"/> for a discussion of the IPv6 case). This should be considered before enabling the aforementioned filtering method.
+</t>
+</section>
+
+
+<section title="Acknowledgements">
+<t>The authors of this document would like to thank (in alphabetical order) [TBD] for providing valuable comments on earlier versions of this document.</t>
+</section>
+
+
+</middle>
+
+<back>
+<references title="Normative References">
+    <?rfc include="reference.RFC.0791" ?>
+    <?rfc include="reference.RFC.0792" ?>
+    <?rfc include="reference.RFC.2119" ?>
+    <?rfc include="reference.RFC.2460" ?>
+    <?rfc include="reference.RFC.4443" ?>
+</references>
+
+<references title="Informative References">
+    <?rfc include="reference.RFC.2827" ?>
+    <?rfc include="reference.RFC.3704" ?>
+    <?rfc include="reference.RFC.5927" ?>
+    <?rfc include="reference.I-D.gont-v6ops-ipv6-ehs-in-real-world" ?>
+
+	<reference anchor="US-CERT">
+		<front>
+			<title>US-CERT Vulnerability Note VU#222750: TCP/IP Implementations do not adequately validate ICMP error messages</title>
+			<author initials="" surname="US-CERT" fullname="United States Computer Emergency Readiness Team">
+				<organization></organization>
+			</author>
+			<date year=""/>
+		</front>
+		<seriesInfo name="http://www.kb.cert.org/vuls/id/222750,"
+value="2005" />
+	</reference>
+
+    <reference anchor="Cisco-EH-Cons" target="http://www.cisco.com/en/US/technologies/tk648/tk872/technologies_white_paper0900aecd8054d37d.pdf">
+  <front>
+  <title>IPv6 Extension Headers Review and Considerations</title>
+  <author initials="" surname="Cisco" fullname="Cisco">
+				<organization></organization>
+  </author>
+  <date month="October" year="2006"/>
+  </front>
+
+  </reference>
+
+
+    <reference anchor="Zack-FW-Benchmark" target="http://www.ipv6hackers.org/meetings/ipv6-hackers-1/zack-ipv6hackers1-firewall-security-assessment-and-benchmarking.pdf">
+  <front>
+  <title abbrev="Firewall Benchmarking">Firewall Security Assessment and Benchmarking IPv6 Firewall Load Tests</title>
+  <author initials="E." surname="Zack" fullname="Eldad Zack">
+  </author>
+  <date year=""/>
+  </front>
+		<seriesInfo name="" value="IPv6 Hackers Meeting #1, Berlin, Germany. June 30, 2013"/>
+<!-- July 27 - August 1 -->
+  </reference>
+
+</references>
+
+</back>
+</rfc>
