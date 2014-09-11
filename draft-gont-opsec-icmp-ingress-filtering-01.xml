@@ -281,7 +281,7 @@ In our scenario, the attack packet sent by the attacker would have the same stru
 </section>
 
 <section title="ICMP/ICMPv6 Network Ingress Filtering" anchor="icmp-filtering">
-<t>IPv4 and IPv6 nodes enforcing IP ingress filtering SHOULD perform ingress filtering on the Destination Address of the IP packet embedded in the ICMP payload.</t>
+<t>IP nodes enforcing IP ingress filtering SHOULD perform ingress filtering on the Destination Address of the IP packet embedded in the payload of ICMP error messages.</t>
 
 <t>In the most simple case, where network ingress filtering is implemented at an edge network with ingress access lists (as suggested in <xref target="RFC2827"/>), a router should check:
 
@@ -322,7 +322,7 @@ This document provides advice on performing network ingress filtering on ICMPv4 
 
 
 <section title="Acknowledgements">
-<t>The authors of this document would like to thank (in alphabetical order) Ron Bonica for providing valuable comments on earlier versions of this document.</t>
+<t>The authors of this document would like to thank (in alphabetical order) Ron Bonica and Vic Liu for providing valuable comments on earlier versions of this document.</t>
 </section>
 
 
